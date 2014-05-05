@@ -2,13 +2,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical">
+
     <AutoCompleteTextView
         android:id="@+id/source_autocomplete_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Where you start">
+        android:hint="Where you start"
+        android:text="801 N Wakefield St, Arlington, VA">
+
         <requestFocus />
     </AutoCompleteTextView>
 
@@ -17,22 +20,37 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Point of Interest" />
+        android:hint="Point of Interest"
+        android:text="gym" />
 
     <AutoCompleteTextView
         android:id="@+id/dest_autocomplete_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Where you want to go" />
+        android:hint="Where you want to go"
+        android:text="7054 Haycock Rd, Falls Church, VA" />
 
-    <Button
-        android:id="@+id/route"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Route"
-        android:textColor="#ffffff" >
-    </Button>
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/route"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Route"
+            android:textColor="#ffffff"></Button>
+
+        <Button
+            android:id="@+id/showRoutes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Steps"
+            android:textColor="#ffffff"
+            android:onClick="showRoute"></Button>
+    </LinearLayout>
 
     <fragment
         android:id="@+id/map"

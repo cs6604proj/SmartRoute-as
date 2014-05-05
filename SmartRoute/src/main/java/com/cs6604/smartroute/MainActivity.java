@@ -1,5 +1,6 @@
 package com.cs6604.smartroute;
 
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -30,6 +32,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.cs6604.adapter.PlacesAutoCompleteAdapter;
+import com.cs6604.models.RouteDetails;
+import com.cs6604.models.RouteLegs;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -43,6 +47,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 public class MainActivity extends Activity implements OnItemClickListener {
 
     private ArrayList<String> results = new ArrayList<String>();
+    private List<RouteDetails> routeResults;
     private ArrayAdapter getPlaces;
     private AutoCompleteTextView sourceAutoComplete;
     private AutoCompleteTextView destAutoComplete;
@@ -51,6 +56,7 @@ public class MainActivity extends Activity implements OnItemClickListener {
     private MapFragment mapFragment;
     private Button routeButton;
     private String _firstEndAddress;
+    private String _originalJson;
 
     HttpRetriever httpRetriever = new HttpRetriever();
 
@@ -98,6 +104,12 @@ public class MainActivity extends Activity implements OnItemClickListener {
         destAutoComplete.setAdapter(new PlacesAutoCompleteAdapter(this, R.layout.list_item));
     }
 
+    public void showRoute(View view) {
+        Intent intent = new Intent(this, RouteListActivity.class);
+        if (_originalJson != null)
+            intent.putExtra("RouteDetails", _originalJson);
+        startActivity(intent);
+    }
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
@@ -146,6 +158,7 @@ public class MainActivity extends Activity implements OnItemClickListener {
                 if (!result.getString("status").equals("OK")) {
                     return;
                 }
+                _originalJson = result.toString();
                 JSONArray routes = result.getJSONArray("routes");
                 ParseDirectionJsonTask pdjTask = new ParseDirectionJsonTask();
                 pdjTask.execute(routes);
@@ -189,12 +202,13 @@ public class MainActivity extends Activity implements OnItemClickListener {
         @Override
         protected void onPostExecute(List<RouteDetails> results) {
             map.clear();
+            routeResults = results;
             RouteLegs leg = results.get(0)._legs.get(0);
             leg._endAddress = poiTextView.getText().toString() + " @ " + leg._endAddress;
             ;
             for (int i = 0; i < results.size(); i++) {
                 RouteDetails route = results.get(i);
-                route.addToMap();
+                route.addToMap(map);
             }
 
 //            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(38.88254, -77.11608), 13));
@@ -243,206 +257,5 @@ public class MainActivity extends Activity implements OnItemClickListener {
 
     }
 
-    private class RouteTransitDetails {
-        private int _numStops;
-        private String _lineColor;
-        private String _shortName;
-        private String _icon;
-        private String _type;
-
-        public RouteTransitDetails(JSONObject object) throws JSONException {
-            this._numStops = object.getInt("num_stops");
-            if(object.getJSONObject("line").has("color"))
-                this._lineColor = object.getJSONObject("line").getString("color");
-            else
-                this._lineColor = "#0000FF";
-            this._shortName = object.getJSONObject("line").getString("name");
-            this._type = object.getJSONObject("line").getJSONObject("vehicle").getString("type");
-//            this._icon = object.getJSONObject("line").getString("icon");
-        }
-    }
-
-    private class RouteSteps {
-        private List<RouteSteps> _steps;
-        private PolylineOptions _polylineOptions;
-        private List<LatLng> _points;
-        private String _travelMode;
-        private String _htmlInstructions;
-        private RouteTransitDetails _transitDetails = null;
-        private LatLng _startPoint;
-
-        public RouteSteps(JSONObject object) throws JSONException {
-            // setup
-            this._steps = new LinkedList<RouteSteps>();
-
-            // check for nested steps
-            if (object.has("steps")) {
-                JSONArray jSteps = object.getJSONArray("steps");
-                // get stps
-                for (int i = 0; i < jSteps.length(); i++)
-                    this._steps.add(new RouteSteps(jSteps.getJSONObject(i)));
-            }
-
-            // get html instructions
-            this._htmlInstructions = object.getString("html_instructions");
-            // get travel mode
-            this._travelMode = object.getString("travel_mode");
-            if (this._travelMode.equals("TRANSIT")) {
-                this._transitDetails = new RouteTransitDetails(object.getJSONObject("transit_details"));
-            }
-            // get polyline
-            _points = new LinkedList<LatLng>();
-            List<LatLng> points = RouteUtils.decodePoly(object.getJSONObject("polyline").getString("points"));
-            _points.clear();
-            _points.addAll(points);
-
-            // get start loation
-            this._startPoint = RouteUtils.generatePoint(object.getJSONObject("start_location"));
-        }
-
-        public void addToMap() {
-            _polylineOptions = new PolylineOptions();
-            _polylineOptions.addAll(this._points);
-            _polylineOptions.width(2);
-            if (this._transitDetails != null) {
-                _polylineOptions.color(RouteUtils.colorFromHex(this._transitDetails._lineColor));
-            } else {
-                _polylineOptions.color(RouteUtils.randomColor());
-                if(this._transitDetails._type == "BUS")
-                {
-                    _polylineOptions.width(4);
-
-                }else if(this._transitDetails._type == "SUBWAY")
-                {
-                    _polylineOptions.width(6);
-                }
-            }
-            map.addPolyline(_polylineOptions);
-
-            // add marker for start of steps
-//            map.addMarker(new MarkerOptions().position(this._startPoint).title(this._htmlInstructions));
-        }
-
-    }
-
-    private class RouteLegs {
-        private List<RouteSteps> _steps;
-        private String _startAddress;
-        private String _endAddress;
-        private LatLng _startPoint;
-        private LatLng _endPoint;
-
-        public RouteLegs(JSONObject object) throws JSONException {
-            // setup
-            this._steps = new LinkedList<RouteSteps>();
-            JSONArray jSteps = object.getJSONArray("steps");
-            // get steps
-            for (int i = 0; i < jSteps.length(); i++)
-                this._steps.add(new RouteSteps(jSteps.getJSONObject(i)));
-
-            // get start and stop locations
-            this._startPoint = RouteUtils.generatePoint(object.getJSONObject("start_location"));
-            this._startAddress = object.getString("start_address");
-            this._endPoint = RouteUtils.generatePoint(object.getJSONObject("end_location"));
-            this._endAddress = object.getString("end_address");
-        }
-
-        public void addToMap() {
-            // iterate over steps to add polylines
-            Iterator<RouteSteps> stepsIterator = this._steps.iterator();
-            while (stepsIterator.hasNext())
-                stepsIterator.next().addToMap();
-
-            // add markers for start and stop
-//            if (this._endAddress.contains("@"))
-                map.addMarker(new MarkerOptions().position(this._endPoint).title(this._endAddress).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-//            else
-//                map.addMarker(new MarkerOptions().position(this._startPoint).title(this._startAddress).alpha(0.7f));
-        }
-
-    }
-
-    private class RouteDetails {
-        private LatLngBounds _boundary;
-        private String _distance;
-        private String _duration;
-        private List<LatLng> _points;
-        private List<RouteLegs> _legs;
-        private JSONObject _originalData;
-
-        public RouteDetails(JSONObject object) throws JSONException {
-            // setup
-            this._legs = new LinkedList<RouteLegs>();
-            // high level info
-            this._originalData = object;
-            JSONArray jLegs = object.getJSONArray("legs");
-
-            // get legs
-            for (int i = 0; i < jLegs.length(); i++)
-                this._legs.add(new RouteLegs(jLegs.getJSONObject(i)));
-
-            // get boundary
-            JSONObject northeast = object.getJSONObject("bounds").getJSONObject("northeast");
-            LatLng northeast_point = RouteUtils.generatePoint(northeast);
-            JSONObject southwest = object.getJSONObject("bounds").getJSONObject("southwest");
-            LatLng southwest_point = RouteUtils.generatePoint(southwest);
-            this.setBoundary(northeast_point, southwest_point);
-
-            // get distance
-            this.setDistance(jLegs.getJSONObject(0).getJSONObject("distance").getString("text"));
-            // get duration
-            this.setDuration(jLegs.getJSONObject(0).getJSONObject("duration").getString("text"));
-            // get polyline and build
-            _points = new LinkedList<LatLng>();
-            this.decodePolyline(object.getJSONObject("overview_polyline").getString("points"));
-        }
-
-        public void addToMap() {
-            // move camera
-            map.moveCamera(CameraUpdateFactory.newLatLngBounds(this.getBoundary(), 0));
-            // iterate over legs
-            Iterator<RouteLegs> legsIterator = this._legs.iterator();
-            while (legsIterator.hasNext())
-                legsIterator.next().addToMap();
-
-            // add start of leg
-//            map.addMarker(new MarkerOptions().position(this._legs.get(0)._startPoint).title(this._legs.get(0)._startAddress).alpha(0.7f));
-        }
-
-        public LatLngBounds getBoundary() {
-            return _boundary;
-        }
-
-        public String getDistance() {
-            return _distance;
-        }
-
-        public String getDuration() {
-            return _duration;
-        }
-
-        public List<LatLng> getPoints() {
-            return _points;
-        }
-
-        public void setBoundary(LatLng northeast, LatLng southwest) {
-            _boundary = new LatLngBounds(southwest, northeast);
-        }
-
-        public void setDistance(String distance) {
-            _distance = distance;
-        }
-
-        public void setDuration(String duration) {
-            _duration = duration;
-        }
-
-        public void decodePolyline(String lineX) {
-            List<LatLng> points = RouteUtils.decodePoly(lineX);
-            _points.clear();
-            _points.addAll(points);
-        }
-
-    }
 
 }
