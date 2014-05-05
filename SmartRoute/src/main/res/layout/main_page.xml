@@ -9,8 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Where you start"
-        android:text="801 N Wakefield St, Arlington, VA">
+        android:hint="Where you start">
 
         <requestFocus />
     </AutoCompleteTextView>
@@ -20,16 +19,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Point of Interest"
-        android:text="gym" />
+        android:hint="Point of Interest" />
 
     <AutoCompleteTextView
         android:id="@+id/dest_autocomplete_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
-        android:hint="Where you want to go"
-        android:text="7054 Haycock Rd, Falls Church, VA" />
+        android:hint="Where you want to go" />
 
     <LinearLayout
         android:layout_width="match_parent"

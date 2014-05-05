@@ -55,21 +55,12 @@ public class RouteSteps implements Serializable{
     public void addToMap(GoogleMap map) {
         _polylineOptions = new PolylineOptions();
         _polylineOptions.addAll(this._points);
+        _polylineOptions.width(5);
         if (this._transitDetails != null) {
             _polylineOptions.color(RouteUtils.colorFromHex(this._transitDetails._lineColor));
-            if(this._transitDetails._type == "BUS")
-            {
-                _polylineOptions.width(4);
-
-            }else if(this._transitDetails._type == "SUBWAY")
-            {
-                _polylineOptions.width(6);
-            } else
-
-                _polylineOptions.width(2);
         } else {
-            _polylineOptions.color(RouteUtils.randomColor());
-            _polylineOptions.width(2);
+//            _polylineOptions.color(RouteUtils.randomColor());
+            _polylineOptions.color(RouteUtils.colorFromHex("#66FF33"));
         }
         map.addPolyline(_polylineOptions);
 

@@ -53,9 +53,20 @@ public class RouteListActivity extends ActionBarActivity {
                 for (RouteLegs leg : r._legs) {
                     for (RouteSteps step : leg._steps) {
                         HashMap<String, String> instruction = new HashMap<String, String>();
-                        instruction.put("instruction", step._htmlInstructions);
+                        instruction.put("instruction", android.text.Html.fromHtml(step._htmlInstructions).toString());
                         instructions.add(instruction);
+                        for (RouteSteps walk_step : step._steps) {
+                            HashMap<String, String> walk_instruction = new HashMap<String, String>();
+                            walk_instruction.put("instruction", android.text.Html.fromHtml(walk_step._htmlInstructions).toString());
+                            instructions.add(walk_instruction);
+                        }
                     }
+                }
+                if(results.indexOf(r) == 0) {
+                    HashMap<String, String> instruction = new HashMap<String, String>();
+                    String poi = (String) getIntent().getSerializableExtra("PointOfInterest");
+                    instruction.put("instruction", "Arrive @ " + poi);
+                    instructions.add(instruction);
                 }
             }
 

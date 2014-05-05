@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.FragmentTransaction;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
@@ -23,6 +24,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
@@ -92,6 +94,7 @@ public class MainActivity extends Activity implements OnItemClickListener {
                         destAutoComplete.getText().toString(),
                         poiTextView.getText().toString());
                 rrTask.execute();
+                hideSoftKeyboard(MainActivity.this);
             }
 
         });
@@ -103,11 +106,16 @@ public class MainActivity extends Activity implements OnItemClickListener {
         sourceAutoComplete.setAdapter(adpter);
         destAutoComplete.setAdapter(new PlacesAutoCompleteAdapter(this, R.layout.list_item));
     }
-
+    public static void hideSoftKeyboard(Activity activity) {
+        InputMethodManager inputMethodManager = (InputMethodManager)  activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        inputMethodManager.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), 0);
+    }
     public void showRoute(View view) {
         Intent intent = new Intent(this, RouteListActivity.class);
         if (_originalJson != null)
             intent.putExtra("RouteDetails", _originalJson);
+
+        intent.putExtra("PointOfInterest", poiTextView.getText().toString());
         startActivity(intent);
     }
 
